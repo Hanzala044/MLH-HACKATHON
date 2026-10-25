@@ -7,10 +7,11 @@ import {
   CheckCircle, 
   AlertTriangle, 
   RefreshCw, 
-  ShieldCheck, 
   Camera, 
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Database,
+  Trash2
 } from 'lucide-react';
 import { api } from '../api';
 import type { Receipt } from '../types';
@@ -72,10 +73,10 @@ export const Upload: React.FC = () => {
 
     const interval = setInterval(async () => {
       try {
-        const updated = await api.getReceipts();
-        const idSet = new Set(uploadedReceipts.map(r => r.id));
-        const relevant = updated.filter(r => idSet.has(r.id));
-        setUploadedReceipts(relevant);
+        const fresh = await api.getReceipts();
+        setUploadedReceipts(prev =>
+          prev.map(p => fresh.find(f => f.id === p.id) || p)
+        );
       } catch (err) {
         console.error('Polling error', err);
       }
@@ -84,87 +85,89 @@ export const Upload: React.FC = () => {
     return () => clearInterval(interval);
   }, [uploadedReceipts]);
 
-  const removeFile = (idx: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== idx));
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
-    <div className="page-wrapper" style={{ maxWidth: '900px' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
-          Capture & Upload Receipts
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.2rem' }}>
-          Drop photos, PDFs or WhatsApp payment screenshots for instant Gemma 4 structured extraction
-        </p>
-      </div>
-
-      {/* Processing Location Banner (FR-44) */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.85rem 1.25rem',
-        borderRadius: 'var(--radius-sm)',
-        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%)',
-        border: '1px solid rgba(16, 185, 129, 0.25)',
-        marginBottom: '1.5rem',
-        fontSize: '0.8rem',
-        color: '#34d399'
-      }}>
-        <ShieldCheck size={20} color="#10b981" />
+    <div className="page-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Page Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <strong>Processing Security:</strong> Using Google DeepMind Gemma 4 with zero permanent cloud storage retention. Your documents remain private and tax-ready.
+          <h2 style={{ fontSize: '1.45rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-main)' }}>
+            Upload Receipts & Invoices
+          </h2>
+          <p style={{ fontSize: '0.825rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
+            Multi-modal ingestion pipeline stored directly in your Supabase backend
+          </p>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.35rem 0.85rem',
+          borderRadius: 'var(--radius-full)',
+          background: 'var(--accent-yellow)',
+          color: '#000000',
+          fontSize: '0.75rem',
+          fontWeight: 700
+        }}>
+          <Database size={14} />
+          <span>Supabase PostgreSQL Storage Enabled</span>
         </div>
       </div>
 
       {error && (
         <div style={{
-          padding: '0.85rem 1.25rem',
-          borderRadius: 'var(--radius-sm)',
-          background: 'rgba(244, 63, 94, 0.12)',
-          border: '1px solid rgba(244, 63, 94, 0.3)',
-          color: '#f87171',
-          fontSize: '0.85rem',
-          marginBottom: '1.5rem'
+          padding: '0.85rem 1.15rem',
+          borderRadius: 'var(--radius-md)',
+          background: '#FEE2E2',
+          border: '1px solid #FCA5A5',
+          color: '#B91C1C',
+          fontSize: '0.825rem',
+          fontWeight: 600
         }}>
           {error}
         </div>
       )}
 
-      {/* Dropzone */}
+      {/* Drag & Drop Bento Card */}
       <div
         {...getRootProps()}
+        className="bento-card"
         style={{
-          border: `2px dashed ${isDragActive ? '#10b981' : 'rgba(255, 255, 255, 0.15)'}`,
-          borderRadius: 'var(--radius-md)',
           padding: '3rem 2rem',
           textAlign: 'center',
-          backgroundColor: isDragActive ? 'rgba(16, 185, 129, 0.06)' : 'rgba(18, 24, 38, 0.5)',
           cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          marginBottom: '1.5rem'
+          border: isDragActive ? '2px dashed var(--accent-black)' : '2px dashed rgba(0, 0, 0, 0.12)',
+          backgroundColor: isDragActive ? 'var(--bg-card-subtle)' : 'var(--bg-card)',
+          transition: 'all 0.2s ease'
         }}
       >
         <input {...getInputProps()} />
+
         <div style={{
           width: '64px',
           height: '64px',
-          borderRadius: '16px',
-          background: 'rgba(16, 185, 129, 0.12)',
-          color: '#10b981',
+          borderRadius: '20px',
+          background: 'var(--bg-card-subtle)',
+          border: '1px solid var(--border-color)',
+          color: 'var(--text-main)',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '1rem'
+          marginBottom: '1rem',
+          boxShadow: 'var(--shadow-bento)'
         }}>
           <UploadCloud size={32} />
         </div>
-        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-          {isDragActive ? 'Drop your files here...' : 'Drag & drop receipts, or browse'}
+
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.4rem', color: 'var(--text-main)' }}>
+          {isDragActive ? 'Drop receipts right here...' : 'Drag & drop receipts, or browse files'}
         </h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '420px', margin: '0 auto 1.25rem auto' }}>
-          Supports JPG, PNG, WEBP and PDF invoices up to 10MB each (batch of up to 10 files).
+        <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', maxWidth: '420px', margin: '0 auto 1.5rem auto' }}>
+          Supports JPG, PNG, WEBP and PDF invoices up to 10MB each (batch of up to 10 receipts).
         </p>
 
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -190,32 +193,53 @@ export const Upload: React.FC = () => {
 
       {/* Selected file preview list */}
       {files.length > 0 && (
-        <div className="glass-panel" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
-          <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
-            Selected Files ({files.length}/10)
-          </h4>
+        <div className="bento-card" style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+              Selected Files ({files.length}/10)
+            </h4>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+              Ready for extraction
+            </span>
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
             {files.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', fontSize: '0.85rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-                  <FileText size={16} color="#06b6d4" />
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>({(f.size / 1024).toFixed(0)} KB)</span>
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem 1rem',
+                  background: 'var(--bg-card-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                  <FileText size={16} color="var(--text-muted)" />
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {f.name}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                    ({(f.size / 1024).toFixed(0)} KB)
+                  </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => removeFile(i)}
-                  style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                  style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.35rem' }}
                 >
-                  Remove
+                  <Trash2 size={16} />
                 </button>
               </div>
             ))}
           </div>
 
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-              Optional Context Note (e.g. "Client lunch in Udupi", "Annual AWS subscription")
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+              Optional Context Note (e.g. "Client lunch in Udupi", "Monthly cloud droplet")
             </label>
             <input
               type="text"
@@ -230,8 +254,8 @@ export const Upload: React.FC = () => {
             type="button"
             onClick={handleUpload}
             disabled={uploading}
-            className="btn btn-primary"
-            style={{ width: '100%', padding: '0.75rem' }}
+            className="btn btn-black"
+            style={{ width: '100%', padding: '0.85rem', fontSize: '0.9rem', fontWeight: 800 }}
           >
             {uploading ? (
               <>
@@ -250,11 +274,13 @@ export const Upload: React.FC = () => {
 
       {/* Batch Extraction Status Cards */}
       {uploadedReceipts.length > 0 && (
-        <div className="glass-panel" style={{ padding: '1.5rem' }}>
+        <div className="bento-card" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Extraction Pipeline</h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-              Auto-updating every 2s
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+              Extraction Pipeline
+            </h3>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>
+              Auto-updating via Supabase backend
             </span>
           </div>
 
@@ -266,31 +292,44 @@ export const Upload: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '0.9rem 1.1rem',
-                  background: 'rgba(255,255,255,0.02)',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
+                  padding: '1rem 1.25rem',
+                  background: 'var(--bg-card-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)',
                   flexWrap: 'wrap',
                   gap: '0.75rem'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={18} color="#94a3b8" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '12px',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <FileText size={20} color="var(--text-muted)" />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-main)' }}>
                       {r.vendor || r.original_filename}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
                       {r.receipt_date ? `${r.receipt_date} • ` : ''}
-                      {r.total ? `${r.currency || '₹'} ${r.total.toFixed(2)}` : 'Extracting fields...'}
+                      {r.total ? `${r.currency || '₹'} ${r.total.toFixed(2)}` : 'Gemma 4 processing in background...'}
                     </div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span className={`badge badge-${r.status}`}>
+                  <span className={`status-pill ${
+                    r.status === 'confirmed' ? 'status-pill-confirmed' :
+                    r.status === 'needs_review' ? 'status-pill-rescheduled' :
+                    r.status === 'processing' ? 'status-pill-waiting' : 'status-pill-scheduled'
+                  }`}>
                     {r.status === 'processing' && <RefreshCw size={12} className="pulse-indicator" />}
                     {r.status === 'ready' && <CheckCircle size={12} />}
                     {r.status === 'needs_review' && <AlertTriangle size={12} />}
@@ -302,7 +341,7 @@ export const Upload: React.FC = () => {
                       type="button"
                       onClick={() => navigate(`/receipts/${r.id}`)}
                       className="btn btn-secondary"
-                      style={{ padding: '0.35rem 0.8rem', fontSize: '0.75rem' }}
+                      style={{ padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontWeight: 700 }}
                     >
                       <span>Review</span>
                       <ArrowRight size={14} />
