@@ -199,14 +199,14 @@ export const Ledger: React.FC = () => {
       </div>
 
       {/* Ledger Table */}
-      <div className="glass-panel" style={{ overflow: 'hidden' }}>
+      <div className="bento-card" style={{ overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+              <tr style={{ background: 'var(--bg-card-subtle)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-dim)' }}>
                 <th 
                   onClick={() => { setSortBy('date'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}
-                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '0.85rem 1rem', fontWeight: 700, cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <span>Date</span>
@@ -215,28 +215,28 @@ export const Ledger: React.FC = () => {
                 </th>
                 <th 
                   onClick={() => { setSortBy('vendor'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}
-                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '0.85rem 1rem', fontWeight: 700, cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <span>Vendor</span>
                     <ArrowUpDown size={13} />
                   </div>
                 </th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Category</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Tax Type</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Tax Amount</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Category</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Tax Type</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Tax Amount</th>
                 <th 
                   onClick={() => { setSortBy('total'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); }}
-                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '0.85rem 1rem', fontWeight: 700, cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <span>Total</span>
                     <ArrowUpDown size={13} />
                   </div>
                 </th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Payment</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Status</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Payment</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Status</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -254,7 +254,7 @@ export const Ledger: React.FC = () => {
                 </tr>
               ) : (
                 receipts.map(r => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.15s' }}>
+                  <tr key={r.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.15s' }}>
                     <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {r.receipt_date || 'Pending'}
                     </td>

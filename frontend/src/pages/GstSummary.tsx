@@ -68,65 +68,65 @@ export const GstSummary: React.FC = () => {
       </div>
 
       {/* Summary KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Taxable Value</span>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.35rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
+        <div className="bento-card" style={{ padding: '1.25rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)' }}>Taxable Value</span>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
             ₹{(data?.summary?.total_taxable || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Net expense before taxes</span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Net expense before taxes</span>
         </div>
 
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>CGST Claimable</span>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.35rem' }}>
+        <div className="bento-card" style={{ padding: '1.25rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)' }}>CGST Claimable</span>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
             ₹{(data?.summary?.total_cgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Central GST</span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Central GST</span>
         </div>
 
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>SGST Claimable</span>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#818cf8', marginTop: '0.35rem' }}>
+        <div className="bento-card" style={{ padding: '1.25rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)' }}>SGST Claimable</span>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
             ₹{(data?.summary?.total_sgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>State GST</span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>State GST</span>
         </div>
 
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>IGST Claimable</span>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#c084fc', marginTop: '0.35rem' }}>
+        <div className="bento-card" style={{ padding: '1.25rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)' }}>IGST Claimable</span>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
             ₹{(data?.summary?.total_igst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Integrated Interstate GST</span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Interstate GST</span>
         </div>
 
-        <div className="glass-panel" style={{ padding: '1.25rem', borderColor: 'rgba(16, 185, 129, 0.35)' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#34d399' }}>Total ITC Claimable</span>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10b981', marginTop: '0.35rem' }}>
+        <div className="bento-card-yellow" style={{ padding: '1.25rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#000000' }}>Total ITC Claimable</span>
+          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#000000', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
             ₹{(data?.summary?.total_tax || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{data?.summary?.invoice_count || 0} qualifying bills</span>
+          <span style={{ fontSize: '0.72rem', color: 'rgba(0,0,0,0.7)', fontWeight: 600 }}>{data?.summary?.invoice_count || 0} qualifying bills</span>
         </div>
       </div>
 
       {/* GST Table */}
-      <div className="glass-panel" style={{ overflow: 'hidden' }}>
+      <div className="bento-card" style={{ overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Date</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Vendor</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Invoice #</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Taxable (₹)</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Rate</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>CGST (₹)</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>SGST (₹)</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>IGST (₹)</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Total Tax</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Consistency</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600, textAlign: 'right' }}>Action</th>
+              <tr style={{ background: 'var(--bg-card-subtle)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-dim)' }}>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Date</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Vendor</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Invoice #</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Taxable (₹)</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Rate</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>CGST (₹)</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>SGST (₹)</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>IGST (₹)</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Total Tax</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Consistency</th>
+                <th style={{ padding: '0.85rem 1rem', fontWeight: 700, textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>

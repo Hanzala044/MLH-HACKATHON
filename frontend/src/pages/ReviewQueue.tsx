@@ -60,7 +60,7 @@ export const ReviewQueue: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -69,28 +69,23 @@ export const ReviewQueue: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
+              className={`btn-pill ${isActive ? 'active' : ''}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.6rem 1rem',
-                borderRadius: 'var(--radius-sm)',
-                background: isActive ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                border: isActive ? '1px solid var(--border-color)' : '1px solid transparent',
-                color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
-                fontWeight: isActive ? 700 : 500,
-                fontSize: '0.85rem',
+                gap: '0.45rem',
+                padding: '0.5rem 0.95rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
                 whiteSpace: 'nowrap'
               }}
             >
-              <Icon size={16} color={tab.color} />
+              <Icon size={14} color={isActive ? '#FFFFFF' : 'var(--text-muted)'} />
               <span>{tab.label}</span>
               <span style={{
-                background: isActive ? tab.color : 'rgba(255,255,255,0.06)',
-                color: isActive ? '#000' : 'var(--text-muted)',
-                fontSize: '0.7rem',
+                background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'var(--bg-card-subtle)',
+                color: isActive ? '#FFFFFF' : 'var(--text-dim)',
+                fontSize: '0.68rem',
                 fontWeight: 700,
                 padding: '0.1rem 0.45rem',
                 borderRadius: '999px'
