@@ -13,21 +13,29 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    user_id: str
-    email: str
-    full_name: Optional[str] = None
-
-
 class UserResponse(BaseModel):
     id: str
     email: str
     full_name: Optional[str] = None
-    currency_pref: str = "INR"
+    default_currency: str = "INR"
+    currency_pref: Optional[str] = "INR"
     country: str = "IN"
     model_mode: str = "cloud"
 
     class Config:
         from_attributes = True
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+    user_id: Optional[str] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+
+
+class ClerkAuthRequest(BaseModel):
+    clerk_id: str
+    email: str
+    full_name: Optional[str] = None
