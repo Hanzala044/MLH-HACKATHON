@@ -11,10 +11,13 @@ import {
   ShieldCheck,
   LogOut
 } from 'lucide-react';
+import { UserButton } from '@clerk/clerk-react';
 import { useAuth } from '../context/AuthContext';
+import { useClerkConfig } from '../context/ClerkWrapper';
 
 export const Sidebar: React.FC = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, isClerkAuth } = useAuth();
+  const { isClerkConfigured } = useClerkConfig();
 
   const navItems = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -97,33 +100,54 @@ export const Sidebar: React.FC = () => {
         borderTop: '1px solid var(--border-color)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        gap: '0.5rem'
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {user?.full_name || user?.email || 'User'}
-          </span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.full_name || user?.email || 'User'}
+            </span>
+            {isClerkAuth && (
+              <span style={{ fontSize: '0.62rem', padding: '0.1rem 0.35rem', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.2)', color: '#a5b4fc', fontWeight: 700 }}>
+                CLERK
+              </span>
+            )}
+          </div>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {user?.email}
           </span>
         </div>
-        <button
-          onClick={logout}
-          title="Sign out"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            padding: '0.4rem',
-            borderRadius: 'var(--radius-sm)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <LogOut size={17} />
-        </button>
+        {isClerkConfigured && isClerkAuth ? (
+          <UserButton
+            appearance={{
+              elements: {
+                userButtonAvatarBox: {
+                  width: '28px',
+                  height: '28px',
+                }
+              }
+            }}
+          />
+        ) : (
+          <button
+            onClick={logout}
+            title="Sign out"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '0.4rem',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <LogOut size={17} />
+          </button>
+        )}
       </div>
     </aside>
   );
