@@ -53,6 +53,7 @@ export const api = {
   register: (data: any) => request<{ access_token: string; user: User }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (data: any) => request<{ access_token: string; user: User }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   demoLogin: () => request<{ access_token: string; user: User }>('/auth/demo', { method: 'POST' }),
+  clerkLogin: (data: { clerk_id: string; email: string; full_name?: string }) => request<{ access_token: string; user: User }>('/auth/clerk', { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => request<User>('/auth/me'),
 
   // Receipts

@@ -13,6 +13,8 @@ import { AskGemma } from './pages/AskGemma';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 
+import { ClerkWrapper } from './context/ClerkWrapper';
+
 const ProtectedLayout: React.FC = () => {
   const { user, loading } = useAuth();
 
@@ -52,13 +54,15 @@ const ProtectedLayout: React.FC = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Login />} />
-          <Route path="/*" element={<ProtectedLayout />} />
-        </Routes>
-      </BrowserRouter>
+      <ClerkWrapper>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Login />} />
+            <Route path="/*" element={<ProtectedLayout />} />
+          </Routes>
+        </BrowserRouter>
+      </ClerkWrapper>
     </AuthProvider>
   );
 }
