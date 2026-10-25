@@ -99,4 +99,5 @@ export const api = {
   updateSettings: (data: any) => request<any>('/settings', { method: 'PATCH', body: JSON.stringify(data) }),
   testModel: (mode: string) => request<any>(`/settings/test-model?mode=${mode}`, { method: 'POST' }),
   deleteAllData: () => request<{ message: string }>('/settings/data', { method: 'DELETE' }),
+  getDatabaseInfo: () => request<any>('/settings/database'),
 };

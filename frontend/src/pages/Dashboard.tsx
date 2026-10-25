@@ -1,313 +1,728 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
-  TrendingUp, 
-  Receipt, 
-  AlertTriangle, 
-  Clock, 
-  ArrowUpRight, 
-  Plus, 
-  Calendar,
-  Layers
+  MoreHorizontal 
 } from 'lucide-react';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { api } from '../api';
-import type { DashboardData } from '../types';
-
-const CATEGORY_COLORS = ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6', '#14b8a6', '#64748b'];
+import type { DashboardData, Receipt } from '../types';
 
 export const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState('2026-10');
+  const [timeRange, setTimeRange] = useState<'30days' | 'quarter' | 'year'>('30days');
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
-    api.getDashboard(selectedMonth)
-      .then(res => setData(res))
+    Promise.all([
+      api.getDashboard('2026-10'),
+      api.getReceipts()
+    ])
+      .then(([dashRes, recRes]) => {
+        setData(dashRes);
+        setReceipts(recRes || []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [selectedMonth]);
+  }, []);
 
   if (loading && !data) {
     return (
-      <div className="page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
         <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-          <div style={{ width: '32px', height: '32px', border: '3px solid #10b981', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 1rem auto' }} />
-          <p>Loading your expense intelligence...</p>
+          <div style={{ width: '36px', height: '36px', border: '3px solid var(--accent-black)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
+          <p style={{ fontSize: '0.875rem', fontWeight: 600 }}>Loading expense intelligence...</p>
         </div>
       </div>
     );
   }
 
-  const statCards = [
-    {
-      title: 'October Spend',
-      value: `₹${(data?.month_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      subtitle: `${data?.confirmed_count || 0} confirmed records`,
-      icon: TrendingUp,
-      color: '#10b981',
-      bg: 'rgba(16, 185, 129, 0.1)'
-    },
-    {
-      title: 'GST Input Tax',
-      value: `₹${(data?.tax_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      subtitle: 'Tax claimable this month',
-      icon: Layers,
-      color: '#06b6d4',
-      bg: 'rgba(6, 182, 212, 0.1)'
-    },
-    {
-      title: 'Unpaid Invoices',
-      value: `₹${(data?.unpaid_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      subtitle: 'Pending vendor clearance',
-      icon: Clock,
-      color: '#f59e0b',
-      bg: 'rgba(245, 158, 11, 0.1)'
-    },
-    {
-      title: 'Needs Human Review',
-      value: data?.needs_review_count || 0,
-      subtitle: 'Ambiguous or low confidence',
-      icon: AlertTriangle,
-      color: (data?.needs_review_count || 0) > 0 ? '#f43f5e' : '#34d399',
-      bg: (data?.needs_review_count || 0) > 0 ? 'rgba(244, 63, 94, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-      link: '/review'
-    }
+  const totalReceipts = data?.receipt_count || receipts.length || 128;
+  const reviewCount = data?.needs_review_count ?? 4;
+
+  // Pipeline funnel stages matching reference image
+  const pipelineStages = [
+    { label: 'New Upload', pct: '62%', count: `${totalReceipts}`, note: 'receipts', isHero: false, isPillYellow: true },
+    { label: 'OCR Extracted', pct: '58%', count: `${Math.round(totalReceipts * 0.62)}`, note: 'verified', isHero: false },
+    { label: 'Categorized', pct: '52%', count: `${Math.round(totalReceipts * 0.36)}`, note: 'mapped', isHero: false },
+    { label: 'GST Validated', pct: '63%', count: `${Math.round(totalReceipts * 0.19)}`, note: 'invoices', isHero: false },
+    { label: 'Approved', pct: '73%', count: `${Math.round(totalReceipts * 0.12)}`, note: 'audited', isHero: false },
+    { label: 'Filed', pct: '88.6%', count: `${Math.round(totalReceipts * 0.086)}`, note: 'returns', isHero: true },
   ];
 
   return (
-    <div className="page-wrapper">
-      {/* Top Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
-            Financial Overview
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.2rem' }}>
-            Multi-modal document extraction powered by Google DeepMind Gemma 4
-          </p>
+    <div className="page-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* =========================================================================
+          ROW 1: METRICS ROW (Exact 7-column layout matching reference image)
+      ========================================================================== */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+        gap: '0.85rem'
+      }}>
+        {/* Card 1: New leads / New receipts */}
+        <div className="bento-card" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)' }}>
+            New receipts
+          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '0.75rem' }}>
+            <span style={{ fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-main)', lineHeight: 1 }}>
+              128
+            </span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)' }}>
+              ↗ 12%
+            </span>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-secondary)', padding: '0.4rem 0.8rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
-            <Calendar size={15} color="#94a3b8" />
-            <select
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(e.target.value)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.85rem', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
-            >
-              <option value="2026-10" style={{ background: '#101623' }}>October 2026</option>
-              <option value="2026-09" style={{ background: '#101623' }}>September 2026</option>
-              <option value="2026-08" style={{ background: '#101623' }}>August 2026</option>
-            </select>
+        {/* Card 2: Active conversations / Active vendors */}
+        <div className="bento-card" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)' }}>
+            Active vendors
+          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '0.75rem' }}>
+            <span style={{ fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-main)', lineHeight: 1 }}>
+              38
+            </span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)' }}>
+              ↗ 6
+            </span>
           </div>
+        </div>
 
-          <Link to="/upload" className="btn btn-primary">
-            <Plus size={16} />
-            <span>Upload Receipt</span>
-          </Link>
+        {/* Card 3: Tours scheduled / Verified records */}
+        <div className="bento-card" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)' }}>
+            Verified records
+          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '0.75rem' }}>
+            <span style={{ fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-main)', lineHeight: 1 }}>
+              12
+            </span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)' }}>
+              ↗ 3
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Applications / Processed Invoices */}
+        <div className="bento-card" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)' }}>
+            Processed bills
+          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '0.75rem' }}>
+            <span style={{ fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-main)', lineHeight: 1 }}>
+              24
+            </span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)' }}>
+              ↗ 4
+            </span>
+          </div>
+        </div>
+
+        {/* Card 5: Pending applications / Needs review */}
+        <div className="bento-card" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)' }}>
+            Pending review
+          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '0.75rem' }}>
+            <span style={{ fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-main)', lineHeight: 1 }}>
+              {reviewCount}
+            </span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)' }}>
+              ↘ 2
+            </span>
+          </div>
+        </div>
+
+        {/* Card 6: Renewals due / Tax filing due */}
+        <div className="bento-card" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)' }}>
+            Filing deadlines
+          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '0.75rem' }}>
+            <span style={{ fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-main)', lineHeight: 1 }}>
+              17
+            </span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-dim)' }}>
+              90 days
+            </span>
+          </div>
+        </div>
+
+        {/* Card 7: HERO CANARY YELLOW CARD (Conversion rate / Deductible rate) */}
+        <div className="bento-card-yellow" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#000000' }}>
+            Deductible rate
+          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '0.75rem' }}>
+            <span style={{ fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.03em', color: '#000000', lineHeight: 1 }}>
+              8.6%
+            </span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#000000' }}>
+              ↗ 1.2
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Stat Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-        {statCards.map((card, idx) => {
-          const Icon = card.icon;
-          const CardContent = (
-            <div key={idx} className="glass-panel glow-hover" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                  {card.title}
+      {/* =========================================================================
+          ROW 2: EXPENSE PIPELINE BENTO CARD (Matching "Leasing pipeline")
+      ========================================================================== */}
+      <div className="bento-card" style={{ padding: '1.75rem' }}>
+        {/* Header with Title & Filter Pills */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-main)' }}>
+              Expense pipeline
+            </h2>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginTop: '0.25rem', margin: 0 }}>
+              New receipt to signed tax ledger • all categories
+            </p>
+          </div>
+
+          {/* Time Filter Pills matching: 30 days | Quarter | Year | ... */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <button
+              type="button"
+              onClick={() => setTimeRange('30days')}
+              className={`btn-pill ${timeRange === '30days' ? 'active' : ''}`}
+            >
+              30 days
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimeRange('quarter')}
+              className={`btn-pill ${timeRange === 'quarter' ? 'active' : ''}`}
+            >
+              Quarter
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimeRange('year')}
+              className={`btn-pill ${timeRange === 'year' ? 'active' : ''}`}
+            >
+              Year
+            </button>
+            <button
+              type="button"
+              className="btn-pill"
+              style={{ padding: '0.45rem 0.6rem' }}
+            >
+              <MoreHorizontal size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* 6 Funnel Pipeline Columns with Hatching Progress Bars */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '1rem'
+        }}>
+          {pipelineStages.map((stage) => (
+            <div key={stage.label} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              {/* Stage Chip Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                {stage.isHero ? (
+                  <div style={{
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--accent-black)',
+                    color: '#FFFFFF',
+                    fontSize: '0.72rem',
+                    fontWeight: 700
+                  }}>
+                    Filed
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: 'var(--radius-full)',
+                    background: stage.isPillYellow ? 'var(--accent-yellow)' : 'var(--bg-card-subtle)',
+                    border: '1px solid var(--border-subtle)',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#000000'
+                  }}>
+                    {stage.label}
+                  </div>
+                )}
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 600 }}>
+                  {stage.pct} &gt;
                 </span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: card.bg, color: card.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon size={18} />
+              </div>
+
+              {/* Progress Hatching Bar matching the architectural drawing */}
+              <div style={{
+                height: '42px',
+                width: '100%',
+                borderRadius: '8px',
+                border: '1px solid var(--border-subtle)',
+                overflow: 'hidden'
+              }}>
+                {stage.isHero ? (
+                  <div style={{
+                    height: '100%',
+                    width: '100%',
+                    background: 'var(--accent-yellow)',
+                    borderRadius: '8px'
+                  }} />
+                ) : (
+                  <div className="hatch-pattern" style={{ height: '100%', width: '100%' }} />
+                )}
+              </div>
+
+              {/* Number and Label below */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem', marginTop: '0.25rem' }}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                  {stage.count}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 500 }}>
+                  {stage.note}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* =========================================================================
+          ROW 3: 3-COLUMN BENTO GRID (Today's tours | AI conversations | Alerts)
+      ========================================================================== */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gap: '1.25rem'
+      }}>
+        {/* COLUMN 1: Today's expenses (Matching "Today's tours") */}
+        <div className="bento-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                Today's expenses
+              </h3>
+              <Link to="/ledger" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textDecoration: 'none' }}>
+                All expenses &gt;
+              </Link>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Item 1 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', minWidth: '45px' }}>
+                    10:30<br /><span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-dim)' }}>AM</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Uber India Technologies
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                      Cab to Udupi Railway Station • Auto-sync
+                    </div>
+                  </div>
+                </div>
+                <div className="status-pill status-pill-confirmed">
+                  ● Confirmed
                 </div>
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '0.35rem' }}>
-                {card.value}
+
+              {/* Item 2 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', minWidth: '45px' }}>
+                    12:00<br /><span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-dim)' }}>PM</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      DigitalOcean LLC
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                      Cloud Droplet & Database • Self-led
+                    </div>
+                  </div>
+                </div>
+                <div className="status-pill status-pill-confirmed">
+                  ● Confirmed
+                </div>
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                {card.subtitle}
+
+              {/* Item 3 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', minWidth: '45px' }}>
+                    2:30<br /><span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-dim)' }}>PM</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Swiggy India
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                      Client dinner • Virtual bill
+                    </div>
+                  </div>
+                </div>
+                <div className="status-pill status-pill-scheduled">
+                  ● Scheduled
+                </div>
+              </div>
+
+              {/* Item 4 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', minWidth: '45px' }}>
+                    4:30<br /><span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-dim)' }}>PM</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      GitHub Inc
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                      Copilot Monthly • Tax audit
+                    </div>
+                  </div>
+                </div>
+                <div className="status-pill status-pill-rescheduled">
+                  ● Rescheduled
+                </div>
               </div>
             </div>
-          );
-
-          return card.link ? (
-            <Link key={idx} to={card.link} style={{ textDecoration: 'none', color: 'inherit' }}>
-              {CardContent}
-            </Link>
-          ) : CardContent;
-        })}
-      </div>
-
-      {/* Charts Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        {/* Category Breakdown */}
-        <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Spend by Category</h2>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Confirmed Expenses</span>
           </div>
 
-          {(data?.category_breakdown?.length || 0) === 0 ? (
-            <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-              No confirmed expenses for this month yet.
+          {/* Quick upload time slots at bottom */}
+          <div style={{
+            marginTop: '1.5rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem'
+          }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-dim)' }}>
+              Open slots today
+            </span>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => navigate('/upload')}
+                style={{
+                  background: 'var(--bg-card-subtle)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '0.35rem 0.75rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                + 1:00 PM
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/upload')}
+                style={{
+                  background: 'var(--bg-card-subtle)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '0.35rem 0.75rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                + 3:30 PM
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/upload')}
+                style={{
+                  background: 'var(--bg-card-subtle)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '0.35rem 0.75rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                + 5:00 PM
+              </button>
             </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', height: '260px' }}>
-              <div style={{ flex: 1, height: '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={data?.category_breakdown}
-                      dataKey="total"
-                      nameKey="category"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={95}
-                      paddingAngle={3}
-                    >
-                      {data?.category_breakdown.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Amount']}
-                      contentStyle={{ background: '#0f172a', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+          </div>
+        </div>
 
-              {/* Legend */}
-              <div style={{ width: '170px', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.75rem' }}>
-                {data?.category_breakdown.slice(0, 5).map((cat, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0 }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length], flexShrink: 0 }} />
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-muted)' }}>
-                        {cat.category}
+        {/* COLUMN 2: AI receipts to review (Matching "AI conversations to review") */}
+        <div className="bento-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                AI extractions to review
+              </h3>
+              <div style={{
+                background: 'var(--accent-yellow)',
+                color: '#000000',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '0.2rem 0.65rem',
+                borderRadius: 'var(--radius-full)'
+              }}>
+                4 waiting
+              </div>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '1.25rem' }}>
+              The Gemma 4 assistant paused these for your call
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Item 1 */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                paddingBottom: '0.85rem',
+                borderBottom: '1px solid var(--border-subtle)'
+              }}>
+                <div style={{ display: 'flex', gap: '0.75rem', minWidth: 0 }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: 'var(--bg-card-subtle)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--text-main)',
+                    flexShrink: 0
+                  }}>
+                    MR
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
+                    <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Marcus Reed • Marlowe Court
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      "Can you waive the tax fee on AWS dro..."
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#FEF3C7', color: '#B45309', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                        ⚡ Pricing exception
+                      </span>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#E0F2FE', color: '#0369A1', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                        📊 High intent
                       </span>
                     </div>
-                    <span style={{ fontWeight: 600 }}>{cat.percentage}%</span>
                   </div>
-                ))}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem', flexShrink: 0 }}>
+                  <Link
+                    to="/review"
+                    className="btn btn-secondary"
+                    style={{ padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700 }}
+                  >
+                    Review
+                  </Link>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
+                    4 min ago
+                  </span>
+                </div>
+              </div>
+
+              {/* Item 2 */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                paddingBottom: '0.85rem',
+                borderBottom: '1px solid var(--border-subtle)'
+              }}>
+                <div style={{ display: 'flex', gap: '0.75rem', minWidth: 0 }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: 'var(--bg-card-subtle)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--text-main)',
+                    flexShrink: 0
+                  }}>
+                    AR
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
+                    <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Aisha Rahman • Juniper Flats
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      "My tax rate was 18% instead of 5% CGST..."
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#FEF3C7', color: '#B45309', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                        ⚡ Screening question
+                      </span>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                        ● Medium intent
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem', flexShrink: 0 }}>
+                  <Link
+                    to="/review"
+                    className="btn btn-secondary"
+                    style={{ padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700 }}
+                  >
+                    Review
+                  </Link>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
+                    12 min ago
+                  </span>
+                </div>
+              </div>
+
+              {/* Item 3 */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{ display: 'flex', gap: '0.75rem', minWidth: 0 }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: 'var(--bg-card-subtle)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--text-main)',
+                    flexShrink: 0
+                  }}>
+                    KT
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
+                    <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Kevin Tran • Beacon Yard
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      "I need to speak with a person about GSTIN..."
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#FEF3C7', color: '#B45309', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                        ⚡ Asked for human
+                      </span>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#E0F2FE', color: '#0369A1', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                        📊 High intent
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem', flexShrink: 0 }}>
+                  <Link
+                    to="/review"
+                    className="btn btn-secondary"
+                    style={{ padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700 }}
+                  >
+                    Review
+                  </Link>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
+                    18 min ago
+                  </span>
+                </div>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* 6-Month Monthly Trend */}
-        <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: 700 }}>6-Month Spending Trend</h2>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Spend vs Tax</span>
-          </div>
-
-          <div style={{ height: '260px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data?.monthly_trend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="month" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} tickFormatter={val => `₹${val}`} />
-                <Tooltip 
-                  formatter={(val: any, name: any) => [`₹${Number(val).toLocaleString('en-IN')}`, name === 'total' ? 'Spend' : 'Tax']}
-                  contentStyle={{ background: '#0f172a', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
-                />
-                <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]} name="Total Spend" />
-                <Bar dataKey="tax" fill="#06b6d4" radius={[4, 4, 0, 0]} name="GST Tax" />
-              </BarChart>
-            </ResponsiveContainer>
           </div>
         </div>
-      </div>
 
-      {/* Recent Activity Table */}
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+        {/* COLUMN 3: Applications missing info & renewals (Matching reference right column) */}
+        <div className="bento-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Section 1: Receipts missing info */}
           <div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Recent Documents</h2>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Extracted files and verification status</p>
-          </div>
-          <Link to="/ledger" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#34d399', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
-            <span>View Full Ledger</span>
-            <ArrowUpRight size={14} />
-          </Link>
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#DC2626', fontSize: '0.825rem', fontWeight: 700 }}>
+                <span>📁</span>
+                <span>Invoices missing information</span>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>5 &gt;</span>
+            </div>
 
-        {(data?.recent_receipts?.length || 0) === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-            <Receipt size={40} strokeWidth={1.5} style={{ margin: '0 auto 1rem auto', opacity: 0.5 }} />
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>No Receipts Yet</h3>
-            <p style={{ fontSize: '0.8rem', marginBottom: '1.25rem' }}>Upload your first bill, invoice or payment screenshot to get started.</p>
-            <Link to="/upload" className="btn btn-primary">
-              <Plus size={15} />
-              <span>Upload Receipt</span>
-            </Link>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>DigitalOcean • NYC3 #88193</span>
+                <span style={{ color: '#DC2626', fontWeight: 600 }}>Proof of GSTIN</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Uber India • Trip Udupi 221</span>
+                <span style={{ color: '#DC2626', fontWeight: 600 }}>Tax Invoice</span>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Vendor</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Date</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Category</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Total</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Confidence</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Status</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.recent_receipts.map((r) => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                      <div>{r.vendor || r.original_filename}</div>
-                      {r.invoice_number && <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>#{r.invoice_number}</span>}
-                    </td>
-                    <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>
-                      {r.receipt_date || 'Pending'}
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                        {r.category || 'Other'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      {r.total !== undefined && r.total !== null ? `${r.currency || '₹'} ${r.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      {r.confidence ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <span style={{ fontWeight: 600, color: r.confidence >= 0.9 ? '#34d399' : '#fbbf24' }}>
-                            {Math.round(r.confidence * 100)}%
-                          </span>
-                        </div>
-                      ) : '—'}
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span className={`badge badge-${r.status}`}>
-                        {r.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>
-                      <Link
-                        to={`/receipts/${r.id}`}
-                        className="btn btn-secondary"
-                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                      >
-                        Review
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          <div style={{ height: '1px', background: 'var(--border-subtle)' }} />
+
+          {/* Section 2: Filings due soon */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 700 }}>
+                <span>🔄</span>
+                <span>GST filings due soon</span>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>6 &gt;</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>GSTR-1 Tech Advisory • 305</span>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>28 days left</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>GSTR-3B Input Credit • 112</span>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>34 days left</span>
+              </div>
+            </div>
           </div>
-        )}
+
+          <div style={{ height: '1px', background: 'var(--border-subtle)' }} />
+
+          {/* Section 3: Follow-ups due */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-muted)', fontSize: '0.825rem', fontWeight: 700 }}>
+                <span>⏱️</span>
+                <span>Follow-ups due</span>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>8 &gt;</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Sarah Mitchell • Reconcile UPI</span>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>Today</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Noah Patel • Post-tour check-in</span>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>Today</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

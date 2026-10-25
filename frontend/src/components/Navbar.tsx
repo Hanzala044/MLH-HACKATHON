@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Cpu, Bell, Upload, Shield } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, ChevronDown, Bell, ArrowRight } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 
 export const Navbar: React.FC = () => {
   const { user } = useAuth();
   const [reviewCount, setReviewCount] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchBadge = () => {
@@ -17,104 +19,137 @@ export const Navbar: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const firstName = user?.full_name ? user.full_name.split(' ')[0] : 'there';
+
   return (
     <header style={{
-      height: '64px',
-      borderBottom: '1px solid var(--border-color)',
-      backgroundColor: 'rgba(16, 22, 35, 0.8)',
-      backdropFilter: 'blur(12px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 2rem',
-      position: 'sticky',
-      top: 0,
-      zIndex: 40
+      padding: '0.25rem 0.5rem',
+      gap: '1rem',
+      flexWrap: 'wrap'
     }}>
-      {/* Model status indicator */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      {/* 1. Greeting Title (Matching reference image: "Good morning, Jordan") */}
+      <div>
+        <h1 style={{
+          fontSize: '1.65rem',
+          fontWeight: 800,
+          letterSpacing: '-0.03em',
+          color: 'var(--text-main)',
+          margin: 0
+        }}>
+          {getGreeting()}, {firstName}
+        </h1>
+      </div>
+
+      {/* 2. Right Action Controls (Pill Search, Category filter, Bell, Primary Button) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        {/* Search Pill */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
-          padding: '0.35rem 0.75rem',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-full)',
-          background: 'rgba(16, 185, 129, 0.08)',
-          border: '1px solid rgba(16, 185, 129, 0.25)',
-          fontSize: '0.78rem',
-          fontWeight: 600,
-          color: '#34d399'
+          padding: '0.45rem 1rem',
+          boxShadow: 'var(--shadow-bento)',
+          minWidth: '220px'
         }}>
-          <span style={{
-            width: '7px',
-            height: '7px',
-            borderRadius: '50%',
-            backgroundColor: '#10b981',
-            boxShadow: '0 0 8px #10b981'
-          }} className="pulse-indicator" />
-          <Cpu size={14} />
-          <span>Gemma 4: {user?.model_mode === 'local' ? 'Local Ollama' : 'Cloud DeepMind API'}</span>
+          <Search size={15} color="var(--text-dim)" />
+          <input
+            type="text"
+            placeholder="Search receipts, GST..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') navigate('/ledger');
+            }}
+            style={{
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              fontSize: '0.8rem',
+              color: 'var(--text-main)',
+              fontFamily: 'inherit',
+              width: '100%'
+            }}
+          />
         </div>
 
+        {/* Dropdown Filter Pill */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.4rem',
-          fontSize: '0.75rem',
-          color: 'var(--text-dim)',
-          background: 'rgba(255, 255, 255, 0.03)',
-          padding: '0.35rem 0.65rem',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-full)',
-          border: '1px solid var(--border-color)'
+          padding: '0.5rem 0.85rem',
+          fontSize: '0.78rem',
+          fontWeight: 600,
+          color: 'var(--text-muted)',
+          cursor: 'pointer',
+          boxShadow: 'var(--shadow-bento)'
         }}>
-          <Shield size={12} color="#06b6d4" />
-          <span>Self-Hosted & Private</span>
+          <span>🏢 All categories</span>
+          <ChevronDown size={14} color="var(--text-dim)" />
         </div>
-      </div>
 
-      {/* Right actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        {/* Notification Bell Pill */}
         <Link
           to="/review"
           style={{
-            position: 'relative',
-            color: reviewCount > 0 ? '#fbbf24' : 'var(--text-muted)',
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '0.5rem',
-            borderRadius: 'var(--radius-sm)',
+            position: 'relative',
+            color: 'var(--text-muted)',
             textDecoration: 'none',
-            background: reviewCount > 0 ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
-            border: reviewCount > 0 ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid transparent'
+            boxShadow: 'var(--shadow-bento)'
           }}
-          title="Review Queue"
+          title="Review Queue Notifications"
         >
-          <Bell size={18} />
+          <Bell size={16} />
           {reviewCount > 0 && (
             <span style={{
               position: 'absolute',
-              top: '-3px',
-              right: '-3px',
-              backgroundColor: '#f59e0b',
-              color: '#000',
-              fontSize: '0.65rem',
-              fontWeight: 800,
-              width: '18px',
-              height: '18px',
+              top: '6px',
+              right: '6px',
+              width: '8px',
+              height: '8px',
               borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {reviewCount}
-            </span>
+              backgroundColor: 'var(--accent-rose)'
+            }} />
           )}
         </Link>
 
-        <Link to="/upload" className="btn btn-primary" style={{ padding: '0.45rem 1rem', fontSize: '0.8rem' }}>
-          <Upload size={15} />
-          <span>Upload Receipt</span>
+        {/* Primary Action Button (Matte Black Pill matching: "> View Leasing Pipeline") */}
+        <Link
+          to="/upload"
+          className="btn btn-black"
+          style={{
+            padding: '0.55rem 1.15rem',
+            fontSize: '0.825rem',
+            fontWeight: 700,
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)'
+          }}
+        >
+          <span>View Tax Pipeline</span>
+          <ArrowRight size={15} />
         </Link>
       </div>
     </header>
