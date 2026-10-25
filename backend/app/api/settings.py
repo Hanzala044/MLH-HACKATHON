@@ -119,3 +119,39 @@ def delete_all_user_data(
 
     db.commit()
     return {"message": f"Successfully purged all {deleted_count} receipt records and files."}
+
+
+@router.get("/database")
+def get_database_info(db: Session = Depends(get_db)):
+    """Returns database connection status, provider, and statistics."""
+    settings = get_settings()
+    raw_url = settings.database_url or ""
+    is_supabase = "supabase" in raw_url.lower()
+
+    # Mask credentials for display
+    host = "localhost"
+    try:
+        if "@" in raw_url:
+            host = raw_url.split("@")[1].split("/")[0]
+    except Exception:
+        pass
+
+    try:
+        user_count = db.query(User).count()
+        receipt_count = db.query(Receipt).count()
+        status = "connected"
+    except Exception as e:
+        status = f"error: {e}"
+        user_count = 0
+        receipt_count = 0
+
+    return {
+        "status": status,
+        "is_supabase": is_supabase,
+        "provider": "Supabase Managed PostgreSQL" if is_supabase else "PostgreSQL Database",
+        "host": host,
+        "user_count": user_count,
+        "receipt_count": receipt_count,
+        "pooler_port": "6543 (Transaction Mode)" if ":6543" in raw_url else "5432 (Session/Direct)",
+        "ssl": "require" in raw_url.lower() or is_supabase
+    }

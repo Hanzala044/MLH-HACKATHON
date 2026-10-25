@@ -177,6 +177,8 @@ def process_receipt(receipt_id: str, db: Optional[Session] = None):
 
         audit = AuditLog(
             receipt_id=receipt.id,
+            user_id=receipt.user_id,
+            actor="ai",
             action="ai_extracted",
             diff_json={"status": receipt.status.value, "confidence": confidence, "warnings": warnings}
         )

@@ -211,6 +211,13 @@ def seed_demo_data():
 async def lifespan(app: FastAPI):
     # Startup: create DB tables and seed
     Base.metadata.create_all(bind=engine)
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS diff_json JSONB;"))
+            conn.commit()
+    except Exception as e:
+        logger.warning(f"Schema migration note: {e}")
     seed_demo_data()
     yield
 

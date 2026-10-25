@@ -112,7 +112,13 @@ async def upload_receipts(
         db.commit()
         db.refresh(receipt)
 
-        audit = AuditLog(receipt_id=receipt.id, action="uploaded", diff_json={"filename": file.filename, "size": len(content)})
+        audit = AuditLog(
+            receipt_id=receipt.id,
+            user_id=receipt.user_id,
+            actor="user",
+            action="uploaded",
+            diff_json={"filename": file.filename, "size": len(content)}
+        )
         db.add(audit)
         db.commit()
 
@@ -198,7 +204,13 @@ def update_receipt(
                 ext.needs_review = False
                 ext.review_reason = None
 
-    audit = AuditLog(receipt_id=receipt.id, action="edited", diff_json={"before": old_values, "after": edits})
+    audit = AuditLog(
+        receipt_id=receipt.id,
+        user_id=receipt.user_id,
+        actor="user",
+        action="edited",
+        diff_json={"before": old_values, "after": edits}
+    )
     db.add(audit)
     db.commit()
     db.refresh(receipt)
@@ -220,7 +232,13 @@ def confirm_receipt(
     if receipt.extraction:
         receipt.extraction.needs_review = False
 
-    audit = AuditLog(receipt_id=receipt.id, action="confirmed", diff_json={"status": "confirmed"})
+    audit = AuditLog(
+        receipt_id=receipt.id,
+        user_id=receipt.user_id,
+        actor="user",
+        action="confirmed",
+        diff_json={"status": "confirmed"}
+    )
     db.add(audit)
     db.commit()
     db.refresh(receipt)
@@ -260,7 +278,13 @@ def delete_receipt(
     storage = get_storage_service()
     storage.delete_file(file_key)
 
-    audit = AuditLog(receipt_id=receipt.id, action="deleted", diff_json={"file_key": file_key})
+    audit = AuditLog(
+        receipt_id=receipt.id,
+        user_id=receipt.user_id,
+        actor="user",
+        action="deleted",
+        diff_json={"file_key": file_key}
+    )
     db.add(audit)
     db.delete(receipt)
     db.commit()
