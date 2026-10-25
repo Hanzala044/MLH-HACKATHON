@@ -143,34 +143,34 @@ def process_receipt(receipt_id: str, db: Optional[Session] = None):
             except Exception:
                 parsed_date = None
 
-        # Create or update ExtractedReceipt
-        extraction = ExtractedReceipt(
-            receipt_id=receipt.id,
-            document_type=raw_extraction.get("document_type", "receipt"),
-            vendor=vendor,
-            vendor_normalized=(vendor or "").strip().lower(),
-            invoice_number=raw_extraction.get("invoice_number"),
-            receipt_date=parsed_date,
-            currency=raw_extraction.get("currency") or "INR",
-            subtotal=subtotal,
-            tax_type=raw_extraction.get("tax_type"),
-            tax_rate=raw_extraction.get("tax_rate"),
-            tax_amount=tax_amount,
-            total=total,
-            payment_method=raw_extraction.get("payment_method"),
-            payment_status=raw_extraction.get("payment_status", "paid"),
-            category=category,
-            business_expense=bool(raw_extraction.get("business_expense", True)),
-            line_items=raw_extraction.get("line_items") or [],
-            confidence=confidence,
-            completeness_score=score,
-            needs_review=needs_review,
-            review_reason=review_reason,
-            warnings=warnings,
-            model_output_json=raw_extraction
-        )
+        # Create or update ExtractedReceipt (idempotent upsert)
+        extraction = db.query(ExtractedReceipt).filter(ExtractedReceipt.receipt_id == receipt.id).first()
+        if not extraction:
+            extraction = ExtractedReceipt(receipt_id=receipt.id)
+            db.add(extraction)
 
-        db.add(extraction)
+        extraction.document_type = raw_extraction.get("document_type", "receipt")
+        extraction.vendor = vendor
+        extraction.vendor_normalized = (vendor or "").strip().lower()
+        extraction.invoice_number = raw_extraction.get("invoice_number")
+        extraction.receipt_date = parsed_date
+        extraction.currency = raw_extraction.get("currency") or "INR"
+        extraction.subtotal = subtotal
+        extraction.tax_type = raw_extraction.get("tax_type")
+        extraction.tax_rate = raw_extraction.get("tax_rate")
+        extraction.tax_amount = tax_amount
+        extraction.total = total
+        extraction.payment_method = raw_extraction.get("payment_method")
+        extraction.payment_status = raw_extraction.get("payment_status", "paid")
+        extraction.category = category
+        extraction.business_expense = bool(raw_extraction.get("business_expense", True))
+        extraction.line_items = raw_extraction.get("line_items") or []
+        extraction.confidence = confidence
+        extraction.completeness_score = score
+        extraction.needs_review = needs_review
+        extraction.review_reason = review_reason
+        extraction.warnings = warnings
+        extraction.model_output_json = raw_extraction
         receipt.status = ReceiptStatus.needs_review if needs_review else ReceiptStatus.ready
         receipt.processed_at = datetime.datetime.now(datetime.timezone.utc)
         receipt.model_name = client.model_name

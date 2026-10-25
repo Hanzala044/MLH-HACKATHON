@@ -204,12 +204,25 @@ def update_receipt(
                 ext.needs_review = False
                 ext.review_reason = None
 
+    from decimal import Decimal
+
+    def _to_jsonable(val):
+        if isinstance(val, Decimal):
+            return float(val)
+        if isinstance(val, (datetime.date, datetime.datetime)):
+            return val.isoformat()
+        if isinstance(val, dict):
+            return {k: _to_jsonable(v) for k, v in val.items()}
+        if isinstance(val, list):
+            return [_to_jsonable(item) for item in val]
+        return val
+
     audit = AuditLog(
         receipt_id=receipt.id,
         user_id=receipt.user_id,
         actor="user",
         action="edited",
-        diff_json={"before": old_values, "after": edits}
+        diff_json={"before": _to_jsonable(old_values), "after": _to_jsonable(edits)}
     )
     db.add(audit)
     db.commit()

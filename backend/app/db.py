@@ -12,8 +12,12 @@ elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+ps
     db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 connect_args = {}
-if "supabase.com" in db_url or "supabase.co" in db_url or "sslmode=require" in db_url:
-    connect_args["sslmode"] = "require"
+if "supabase.com" in db_url or "supabase.co" in db_url:
+    if "sslmode" not in db_url.lower():
+        connect_args["sslmode"] = "require"
+    if ":6543" in db_url:
+        # Supabase transaction pooler (PgBouncer) does not support prepared statements
+        connect_args["prepare_threshold"] = None
 
 engine = create_engine(
     db_url,
